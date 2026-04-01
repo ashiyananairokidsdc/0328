@@ -233,9 +233,19 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <div class="form-grid">
       <div class="form-section-title">👤 基本情報</div>
       <div class="fg"><label>患者番号 <span class="req">*</span></label><input id="f-patno" placeholder="例：2024-001"></div>
-      <div class="fg"><label>氏名 <span class="req">*</span></label><input id="f-name" placeholder="山田 太郎"></div>
-      <div class="fg"><label>氏名（カナ）</label><input id="f-kana" placeholder="ヤマダ タロウ"></div>
-      <div class="fg"><label>生年月日 <span class="req">*</span></label><input type="date" id="f-dob"></div>
+      <div class="fg"><label>氏名 <span class="req">*</span></label><input id="f-name" placeholder="山田太郎"></div>
+      <div class="fg"><label>氏名（カナ）</label><input id="f-kana" placeholder="ヤマダタロウ"></div>
+      <div class="fg"><label>生年月日 <span class="req">*</span></label>
+<div style="display:flex;gap:6px;align-items:center">
+  <input type="text" id="f-dob-y" placeholder="1990" maxlength="4" style="width:72px;text-align:center" oninput="dobAutoTab(this,'f-dob-m',4)" inputmode="numeric">
+  <span style="color:var(--muted);font-size:13px">年</span>
+  <input type="text" id="f-dob-m" placeholder="01" maxlength="2" style="width:48px;text-align:center" oninput="dobAutoTab(this,'f-dob-d',2)" inputmode="numeric">
+  <span style="color:var(--muted);font-size:13px">月</span>
+  <input type="text" id="f-dob-d" placeholder="01" maxlength="2" style="width:48px;text-align:center" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncDob()" inputmode="numeric">
+  <span style="color:var(--muted);font-size:13px">日</span>
+</div>
+<input type="hidden" id="f-dob">
+</div>
       <div class="fg"><label>性別</label><select id="f-gender"><option value="">選択</option><option>男性</option><option>女性</option><option>その他</option></select></div>
       <div class="fg"><label>電話番号</label><input id="f-phone" placeholder="090-0000-0000"></div>
       <div class="form-section-title">📍 地域情報</div>
@@ -439,14 +449,21 @@ async function saveSettingsToFirestore() {
   await setDoc(doc(db, 'config', 'settings'), appSettings);
 }
 
-// Realtime listener
+// Realtime listener - orderBy不要版（Firestoreインデックス不要）
 function startPatientsListener() {
-  const { db, collection, query, orderBy, onSnapshot } = window._fb;
-  const q = query(collection(db, 'patients'), orderBy('date', 'desc'));
-  unsubPatients = onSnapshot(q, snap => {
-    allPatients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    refreshCurrentPage();
-  });
+  const { db, collection, onSnapshot } = window._fb;
+  unsubPatients = onSnapshot(collection(db, 'patients'),
+    snap => {
+      allPatients = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      refreshCurrentPage();
+    },
+    err => {
+      console.error('Firestore sync error:', err);
+      toast('⚠️ 同期エラーが発生しました。再読み込みしてください。', 'var(--rose)');
+    }
+  );
 }
 function refreshCurrentPage() {
   const active = document.querySelector('.page.active');
@@ -518,8 +535,28 @@ function populateListFilters(){
 }
 
 // Form
+// 生年月日ヘルパー
+function dobAutoTab(el, nextId, maxLen) {
+  // 数字以外を除去
+  el.value = el.value.replace(/[^0-9]/g, '');
+  syncDob();
+  if (el.value.length >= maxLen) {
+    document.getElementById(nextId).focus();
+  }
+}
+function syncDob() {
+  const y = document.getElementById('f-dob-y').value.trim();
+  const m = document.getElementById('f-dob-m').value.trim().padStart(2,'0');
+  const d = document.getElementById('f-dob-d').value.trim().padStart(2,'0');
+  if (y.length === 4 && m && d) {
+    document.getElementById('f-dob').value = `${y}-${m}-${d}`;
+  } else {
+    document.getElementById('f-dob').value = '';
+  }
+}
+
 function clearForm(){
-  ['f-patno','f-name','f-kana','f-phone','f-area','f-chief','f-refname','f-refid','f-school','f-note']
+  ['f-patno','f-name','f-kana','f-phone','f-area','f-chief','f-refname','f-refid','f-school','f-note','f-dob','f-dob-y','f-dob-m','f-dob-d']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['f-gender','f-dept','f-dh','f-source','f-refdh','f-grade']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
@@ -527,6 +564,7 @@ function clearForm(){
   document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
 }
 async function savePatient(){
+  syncDob(); // 保存前に生年月日を同期
   const patno=document.getElementById('f-patno').value.trim();
   const name=document.getElementById('f-name').value.trim();
   const dob=document.getElementById('f-dob').value;
