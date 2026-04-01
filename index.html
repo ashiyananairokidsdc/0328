@@ -13,8 +13,6 @@
      ===================================================== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, deleteDoc,
          query, orderBy, onSnapshot, setDoc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -28,11 +26,9 @@ const firebaseConfig = {
   appId:             "1:406970371996:web:b60f4720ceaea29da4c259"
 };
 
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
-window._fb = { auth, db, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-               collection, doc, addDoc, deleteDoc, query, orderBy, onSnapshot, setDoc, getDoc };
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+window._fb = { db, collection, doc, addDoc, deleteDoc, query, orderBy, onSnapshot, setDoc, getDoc };
 window.dispatchEvent(new Event('fb-ready'));
 </script>
 
@@ -42,19 +38,7 @@ window.dispatchEvent(new Event('fb-ready'));
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
 
-/* LOGIN */
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--ink)}
-.login-box{background:var(--surface);border-radius:20px;padding:48px 40px;width:380px;box-shadow:var(--shadow-lg);text-align:center}
-.login-logo{font-family:'Playfair Display',serif;font-size:15px;color:var(--gold);letter-spacing:.15em;margin-bottom:8px}
-.login-title{font-size:22px;font-weight:900;color:var(--ink);margin-bottom:32px}
-.login-box .fg{text-align:left;margin-bottom:16px}
-.login-box label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px}
-.login-box input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;transition:border-color .2s}
-.login-box input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,115,119,.12)}
-.login-err{color:var(--rose);font-size:12px;margin-bottom:12px;min-height:18px}
-.login-btn{width:100%;padding:13px;background:var(--teal);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;margin-top:4px}
-.login-btn:hover{background:#0a5d61;transform:translateY(-1px);box-shadow:0 4px 14px rgba(13,115,119,.35)}
-.login-btn:disabled{opacity:.6;cursor:default;transform:none}
+
 
 /* APP */
 #app-shell{display:none}
@@ -63,10 +47,7 @@ aside{width:220px;background:var(--ink);flex-shrink:0;display:flex;flex-directio
 .logo-area{padding:28px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
 .logo-mark{font-family:'Playfair Display',serif;font-size:13px;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px}
 .logo-title{font-size:15px;font-weight:700;color:#fff;line-height:1.4}
-.sidebar-user{padding:10px 20px 6px;font-size:11px;color:rgba(255,255,255,.4);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.sidebar-user span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.logout-btn{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.5);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
-.logout-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+
 nav{padding:16px 0;flex:1}
 .nav-section{padding:8px 16px 4px;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;transition:all .2s;border-left:3px solid transparent}
@@ -157,30 +138,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">🦷 Dental Analytics</div>
-    <div class="login-title">新規患者分析システム</div>
-    <div class="fg"><label>メールアドレス</label><input type="email" id="l-email" placeholder="staff@clinic.com" autocomplete="email"></div>
-    <div class="fg" style="margin-bottom:20px"><label>パスワード</label><input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <div class="login-err" id="l-err"></div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">ログイン</button>
-  </div>
-</div>
-
 <!-- APP -->
-<div id="app-shell">
+<div id="app-shell" style="display:block">
 <div class="layout">
 <aside>
   <div class="logo-area">
     <div class="logo-mark">🦷 Dental Analytics</div>
     <div class="logo-title">新規患者<br>分析システム</div>
   </div>
-  <div class="sidebar-user">
-    <span id="user-email-display"></span>
-    <button class="logout-btn" onclick="doLogout()">ログアウト</button>
-  </div>
+
   <nav>
     <div class="nav-section">概要</div>
     <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span>ダッシュボード</div>
@@ -384,43 +350,10 @@ let unsubPatients = null;
 
 // Firebase ready
 window.addEventListener('fb-ready', () => {
-  const { auth, onAuthStateChanged } = window._fb;
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-shell').style.display = 'block';
-      document.getElementById('user-email-display').textContent = user.email;
-      initApp();
-    } else {
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('app-shell').style.display = 'none';
-      if (unsubPatients) { unsubPatients(); unsubPatients = null; }
-      allPatients = []; appSettings = null;
-    }
-  });
+  initApp();
 });
 
-// Auth
-async function doLogin() {
-  const email = document.getElementById('l-email').value.trim();
-  const pass  = document.getElementById('l-pass').value;
-  const err   = document.getElementById('l-err');
-  const btn   = document.getElementById('login-btn');
-  err.textContent = '';
-  if (!email || !pass) { err.textContent = 'メールアドレスとパスワードを入力してください'; return; }
-  btn.disabled = true; btn.textContent = 'ログイン中...';
-  try {
-    const { auth, signInWithEmailAndPassword } = window._fb;
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch(e) {
-    err.textContent = 'メールアドレスまたはパスワードが正しくありません';
-    btn.disabled = false; btn.textContent = 'ログイン';
-  }
-}
-async function doLogout() {
-  const { auth, signOut } = window._fb;
-  await signOut(auth);
-}
+
 
 // Init
 async function initApp() {
