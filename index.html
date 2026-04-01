@@ -335,7 +335,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   <div class="card"><div class="card-hd"><span>⚠️ 注意事項</span></div>
     <div class="card-body" style="font-size:13px;color:var(--slate);line-height:1.8">
       <p>・項目を削除しても、すでに登録された患者データは変わりません。</p>
-      <p>・設定はFirebaseに保存されるため、ログイン中の全スタッフに即時反映されます。</p>
+      <p>・設定はFirebaseに保存されるため、全端末に即時反映されます。</p>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-ghost btn-sm" onclick="resetSettings()">🔄 選択肢を初期値に戻す</button>
+        <span style="font-size:11px;color:var(--muted);margin-left:10px">診療科目・来院経路・担当スタッフを最初の状態に戻します</span>
+      </div>
     </div>
   </div>
 </div>
@@ -371,12 +375,15 @@ async function loadSettings() {
   const snap = await getDoc(doc(db, 'config', 'settings'));
   const DEFAULT = {
     dept:   ['検診・クリーニング','矯正相談','治療相談','保険治療','自費治療','マウスピース作成'],
-    source: ['紹介（患者）','紹介（医院）','Google検索','Google マップ','Instagram','LINE','HP','チラシ・看板','その他'],
+    source: ['紹介','Google検索','Google マップ','Instagram','LINE','HP','チラシ・看板','その他'],
     staff:  ['近藤','橋本','高田','小川'],
   };
-  // 常にDEFAULTで上書き保存（初回セットアップ）
-  appSettings = DEFAULT;
-  await saveSettingsToFirestore();
+  if (snap.exists()) {
+    appSettings = snap.data();
+  } else {
+    appSettings = DEFAULT;
+    await saveSettingsToFirestore();
+  }
 }
 async function saveSettingsToFirestore() {
   const { db, doc, setDoc } = window._fb;
@@ -674,6 +681,18 @@ function renderSettings(){
 }
 function renderTagList(key,items){
   document.getElementById('tags-'+key).innerHTML=items.map((item,i)=>`<div class="tag-item">${item}<button class="tag-del" onclick="removeTag('${key}',${i})">×</button></div>`).join('');
+}
+async function resetSettings(){
+  if(!confirm('選択肢を初期値に戻しますか？\n（診療科目・来院経路・担当スタッフがリセットされます）'))return;
+  appSettings = {
+    dept:   ['検診・クリーニング','矯正相談','治療相談','保険治療','自費治療','マウスピース作成'],
+    source: ['紹介','Google検索','Google マップ','Instagram','LINE','HP','チラシ・看板','その他'],
+    staff:  ['近藤','橋本','高田','小川'],
+  };
+  await saveSettingsToFirestore();
+  renderSettings();
+  populateFormSelects();
+  toast('✅ 選択肢を初期値に戻しました');
 }
 async function addTag(key){
   const inp=document.getElementById('add-'+key);const val=inp.value.trim();
