@@ -374,17 +374,8 @@ async function loadSettings() {
     source: ['紹介（患者）','紹介（医院）','Google検索','Google マップ','Instagram','LINE','HP','チラシ・看板','その他'],
     staff:  ['近藤','橋本','高田','小川'],
   };
-  if (snap.exists()) {
-    const saved = snap.data();
-    // 各キーがなければDEFAULTで補完
-    appSettings = {
-      dept:   saved.dept   && saved.dept.length   ? saved.dept   : DEFAULT.dept,
-      source: saved.source && saved.source.length ? saved.source : DEFAULT.source,
-      staff:  saved.staff  && saved.staff.length  ? saved.staff  : DEFAULT.staff,
-    };
-  } else {
-    appSettings = DEFAULT;
-  }
+  // 常にDEFAULTで上書き保存（初回セットアップ）
+  appSettings = DEFAULT;
   await saveSettingsToFirestore();
 }
 async function saveSettingsToFirestore() {
