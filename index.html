@@ -212,8 +212,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
       <div class="fg"><label>氏名 <span class="req">*</span></label><input id="f-name" placeholder="山田太郎"></div>
       <div class="fg"><label>氏名（カナ）</label><input id="f-kana" placeholder="ヤマダタロウ"></div>
       <div class="fg"><label>生年月日 <span class="req">*</span></label>
-<div style="display:flex;gap:6px;align-items:center">
-  <input type="text" id="f-dob-y" placeholder="1990" maxlength="4" style="width:72px;text-align:center" oninput="dobAutoTab(this,'f-dob-m',4)" inputmode="numeric">
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+  <select id="f-dob-era" onchange="syncDob()" style="width:76px">
+    <option value="">元号</option>
+    <option value="R">令和</option>
+    <option value="H">平成</option>
+    <option value="S">昭和</option>
+    <option value="T">大正</option>
+  </select>
+  <input type="text" id="f-dob-y" placeholder="6" maxlength="2" style="width:44px;text-align:center" oninput="dobAutoTab(this,'f-dob-m',2)" inputmode="numeric">
   <span style="color:var(--muted);font-size:13px">年</span>
   <input type="text" id="f-dob-m" placeholder="01" maxlength="2" style="width:48px;text-align:center" oninput="dobAutoTab(this,'f-dob-d',2)" inputmode="numeric">
   <span style="color:var(--muted);font-size:13px">月</span>
@@ -370,8 +377,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
         <div class="fg"><label>氏名</label><input id="e-name" placeholder="山田太郎"></div>
         <div class="fg"><label>氏名（カナ）</label><input id="e-kana" placeholder="ヤマダタロウ"></div>
         <div class="fg"><label>生年月日</label>
-          <div style="display:flex;gap:6px;align-items:center">
-            <input type="text" id="e-dob-y" placeholder="1990" maxlength="4" style="width:72px;text-align:center" oninput="this.value=this.value.replace(/[^0-9]/g,'');editDobAutoTab(this,'e-dob-m',4)" inputmode="numeric">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select id="e-dob-era" onchange="syncEditDob()" style="width:76px">
+              <option value="">元号</option>
+              <option value="R">令和</option>
+              <option value="H">平成</option>
+              <option value="S">昭和</option>
+              <option value="T">大正</option>
+            </select>
+            <input type="text" id="e-dob-y" placeholder="6" maxlength="2" style="width:44px;text-align:center" oninput="this.value=this.value.replace(/[^0-9]/g,'');editDobAutoTab(this,'e-dob-m',2)" inputmode="numeric">
             <span style="color:var(--muted);font-size:13px">年</span>
             <input type="text" id="e-dob-m" placeholder="01" maxlength="2" style="width:48px;text-align:center" oninput="this.value=this.value.replace(/[^0-9]/g,'');editDobAutoTab(this,'e-dob-d',2)" inputmode="numeric">
             <span style="color:var(--muted);font-size:13px">月</span>
@@ -500,6 +514,15 @@ function toast(msg, color='var(--teal)') {
 }
 
 // Helpers
+function dobToJpString(dob) {
+  if (!dob || !dob.includes('-')) return '-';
+  const [wy,m,d] = dob.split('-');
+  const era = westernToEra(parseInt(wy));
+  if (!era) return dob;
+  const eraName = {R:'令和',H:'平成',S:'昭和',T:'大正'}[era.era];
+  return `${eraName}${era.y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
 function calcAge(dob) {
   if (!dob) return null;
   const d = new Date(dob), now = new Date();
@@ -538,9 +561,26 @@ function populateListFilters(){
 }
 
 // Form
-// 生年月日ヘルパー
+// 和暦変換ヘルパー
+const ERA_MAP = {
+  R: 2018, // 令和元年 = 2019 → base = 2018
+  H: 1988, // 平成元年 = 1989 → base = 1988
+  S: 1925, // 昭和元年 = 1926 → base = 1925
+  T: 1911, // 大正元年 = 1912 → base = 1911
+};
+function eraToWestern(era, y) {
+  if (!era || !y) return null;
+  return ERA_MAP[era] + parseInt(y);
+}
+function westernToEra(westernYear) {
+  if (westernYear >= 2019) return { era:'R', y: westernYear - 2018 };
+  if (westernYear >= 1989) return { era:'H', y: westernYear - 1988 };
+  if (westernYear >= 1926) return { era:'S', y: westernYear - 1925 };
+  if (westernYear >= 1912) return { era:'T', y: westernYear - 1911 };
+  return null;
+}
+
 function dobAutoTab(el, nextId, maxLen) {
-  // 数字以外を除去
   el.value = el.value.replace(/[^0-9]/g, '');
   syncDob();
   if (el.value.length >= maxLen) {
@@ -548,11 +588,13 @@ function dobAutoTab(el, nextId, maxLen) {
   }
 }
 function syncDob() {
-  const y = document.getElementById('f-dob-y').value.trim();
-  const m = document.getElementById('f-dob-m').value.trim().padStart(2,'0');
-  const d = document.getElementById('f-dob-d').value.trim().padStart(2,'0');
-  if (y.length === 4 && m && d) {
-    document.getElementById('f-dob').value = `${y}-${m}-${d}`;
+  const era = document.getElementById('f-dob-era').value;
+  const y   = document.getElementById('f-dob-y').value.trim();
+  const m   = document.getElementById('f-dob-m').value.trim().padStart(2,'0');
+  const d   = document.getElementById('f-dob-d').value.trim().padStart(2,'0');
+  const wy  = eraToWestern(era, y);
+  if (wy && m && d) {
+    document.getElementById('f-dob').value = `${wy}-${m}-${d}`;
   } else {
     document.getElementById('f-dob').value = '';
   }
@@ -561,7 +603,7 @@ function syncDob() {
 function clearForm(){
   ['f-patno','f-name','f-kana','f-area','f-chief','f-refname','f-refid','f-school','f-note','f-dob','f-dob-y','f-dob-m','f-dob-d']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['f-gender','f-dept','f-dh','f-source','f-refdh','f-grade']
+  ['f-gender','f-dept','f-dh','f-source','f-refdh','f-grade','f-dob-era']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   document.getElementById('f-dob').value='';
   document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
@@ -676,10 +718,12 @@ function editDobAutoTab(el, nextId, maxLen) {
   if (el.value.length >= maxLen) document.getElementById(nextId).focus();
 }
 function syncEditDob() {
-  const y=document.getElementById('e-dob-y').value.trim();
-  const m=document.getElementById('e-dob-m').value.trim().padStart(2,'0');
-  const d=document.getElementById('e-dob-d').value.trim().padStart(2,'0');
-  document.getElementById('e-dob').value=(y.length===4&&m&&d)?`${y}-${m}-${d}`:'';
+  const era = document.getElementById('e-dob-era').value;
+  const y   = document.getElementById('e-dob-y').value.trim();
+  const m   = document.getElementById('e-dob-m').value.trim().padStart(2,'0');
+  const d   = document.getElementById('e-dob-d').value.trim().padStart(2,'0');
+  const wy  = eraToWestern(era, y);
+  document.getElementById('e-dob').value = (wy && m && d) ? `${wy}-${m}-${d}` : '';
 }
 
 function openEditModal(id) {
@@ -694,15 +738,25 @@ function openEditModal(id) {
   document.getElementById('e-gender').value = p.gender || '';
   document.getElementById('e-area').value   = p.area   || '';
 
-  // 生年月日
+  // 生年月日（和暦に変換して表示）
   if (p.dob && p.dob.includes('-')) {
-    const [y,m,d] = p.dob.split('-');
-    document.getElementById('e-dob-y').value = y;
+    const [wy,m,d] = p.dob.split('-');
+    const era = westernToEra(parseInt(wy));
+    if (era) {
+      document.getElementById('e-dob-era').value = era.era;
+      document.getElementById('e-dob-y').value   = era.y;
+    } else {
+      document.getElementById('e-dob-era').value = '';
+      document.getElementById('e-dob-y').value   = wy;
+    }
     document.getElementById('e-dob-m').value = m;
     document.getElementById('e-dob-d').value = d;
     document.getElementById('e-dob').value   = p.dob;
   } else {
-    ['e-dob-y','e-dob-m','e-dob-d','e-dob'].forEach(id=>document.getElementById(id).value='');
+    ['e-dob-era','e-dob-y','e-dob-m','e-dob-d','e-dob'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';
+    });
   }
 
   // 診療情報
