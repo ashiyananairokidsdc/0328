@@ -223,7 +223,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 <input type="hidden" id="f-dob">
 </div>
       <div class="fg"><label>性別</label><select id="f-gender"><option value="">選択</option><option>男性</option><option>女性</option><option>その他</option></select></div>
-      <div class="fg"><label>電話番号</label><input id="f-phone" placeholder="090-0000-0000"></div>
+      
       <div class="form-section-title">📍 地域情報</div>
       <div class="fg full"><label>居住地区（市区町村）</label><input id="f-area" placeholder="名古屋市千種区"></div>
       <div class="form-section-title">🦷 診療情報</div>
@@ -381,7 +381,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
           <input type="hidden" id="e-dob">
         </div>
         <div class="fg"><label>性別</label><select id="e-gender"><option value="">選択</option><option>男性</option><option>女性</option><option>その他</option></select></div>
-        <div class="fg"><label>電話番号</label><input id="e-phone" placeholder="090-0000-0000"></div>
+        
         <div class="form-section-title">📍 地域情報</div>
         <div class="fg full"><label>居住地区（市区町村）</label><input id="e-area" placeholder="名古屋市千種区"></div>
         <div class="form-section-title">🦷 診療情報</div>
@@ -559,7 +559,7 @@ function syncDob() {
 }
 
 function clearForm(){
-  ['f-patno','f-name','f-kana','f-phone','f-area','f-chief','f-refname','f-refid','f-school','f-note','f-dob','f-dob-y','f-dob-m','f-dob-d']
+  ['f-patno','f-name','f-kana','f-area','f-chief','f-refname','f-refid','f-school','f-note','f-dob','f-dob-y','f-dob-m','f-dob-d']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['f-gender','f-dept','f-dh','f-source','f-refdh','f-grade']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
@@ -582,7 +582,6 @@ async function savePatient(){
       patno,name,dob,date,
       kana:document.getElementById('f-kana').value.trim(),
       gender:document.getElementById('f-gender').value,
-      phone:document.getElementById('f-phone').value.trim(),
       area:document.getElementById('f-area').value.trim(),
       dept,source:document.getElementById('f-source').value,
       dh:document.getElementById('f-dh').value,
@@ -692,7 +691,6 @@ function openEditModal(id) {
   document.getElementById('e-patno').value  = p.patno  || '';
   document.getElementById('e-name').value   = p.name   || '';
   document.getElementById('e-kana').value   = p.kana   || '';
-  document.getElementById('e-phone').value  = p.phone  || '';
   document.getElementById('e-gender').value = p.gender || '';
   document.getElementById('e-area').value   = p.area   || '';
 
@@ -751,7 +749,7 @@ async function saveEdit() {
       kana:    document.getElementById('e-kana').value.trim(),
       dob:     document.getElementById('e-dob').value,
       gender:  document.getElementById('e-gender').value,
-      phone:   document.getElementById('e-phone').value.trim(),
+
       area:    document.getElementById('e-area').value.trim(),
       date:    document.getElementById('e-date').value,
       dept:    document.getElementById('e-dept').value,
@@ -880,8 +878,8 @@ async function removeTag(key,idx){
 // CSV
 function exportCSV(){
   const P=allPatients;if(!P.length){toast('データがありません','var(--rose)');return;}
-  const headers=['患者番号','初診日','氏名','カナ','生年月日','年齢','性別','電話','居住地区','診療科目','担当スタッフ','主訴','来院経路','紹介者','紹介者担当スタッフ','通学校','学年','備考'];
-  const rows=P.map(p=>[p.patno||'',p.date,p.name,p.kana||'',p.dob||'',calcAge(p.dob)||'',p.gender||'',p.phone||'',p.area||'',p.dept,p.dh||'',p.chief||'',p.source||'',p.refname||'',p.refdh||'',p.school||'',p.grade||'',p.note||'']);
+  const headers=['患者番号','初診日','氏名','カナ','生年月日','年齢','性別','居住地区','診療科目','担当スタッフ','主訴','来院経路','紹介者','紹介者担当スタッフ','通学校','学年','備考'];
+  const rows=P.map(p=>[p.patno||'',p.date,p.name,p.kana||'',p.dob||'',calcAge(p.dob)||'',p.gender||'',p.area||'',p.dept,p.dh||'',p.chief||'',p.source||'',p.refname||'',p.refdh||'',p.school||'',p.grade||'',p.note||'']);
   const csv='\uFEFF'+[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download=`新規患者_${new Date().toISOString().split('T')[0]}.csv`;a.click();
